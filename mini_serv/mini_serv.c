@@ -1,7 +1,7 @@
 # include <stdio.h>
 # include <stdlib.h>
-# include <string.h>
 # include <unistd.h>
+# include <string.h>
 # include <strings.h>
 # include <netinet/in.h>
 # include <sys/select.h>
@@ -13,20 +13,20 @@ typedef struct s_client
 	char	msg[110000];
 }	t_client;
 
-t_client	clients[1024];
+t_client	client[1024];
 fd_set	fds, read_fds, write_fds;
 int	max_fd = 0;
 int	next_id = 0;
 char	read_buffer[120000];
 char	write_buffer[120000];
 
-void	fatal()
+void	error()
 {
 	write(2, "Fatal error\n", 13);
 	exit(1);
 }
 
-void	broadcaster(int sender)
+void	locutor(int sender)
 {
 	int	fd = 0;
 
@@ -45,7 +45,7 @@ int	init_server(char* port)
 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd < 0)
-		fatal();
+		error();
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
@@ -53,9 +53,9 @@ int	init_server(char* port)
 	addr.sin_port = htons(atoi(port));
 
 	if (bind(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
-		fatal();
+		error();
 	if (listen(sockfd, 128) < 0)
-		fatal();
+		error();
 
 	return sockfd;
 }
@@ -67,24 +67,23 @@ void	handle_new_connection(int sockfd)
 
 	int client_fd = accept(sockfd, (struct sockaddr *)&addr, &len);
 	if (client_fd < 0)
-		fatal();
+		error();
 	if (client_fd > max_fd)
 		max_fd = client_fd;
 
-	clients[client_fd].id = next_id++;
+	client[client_fd].id = next_id++;
 	FD_SET(client_fd, &fds);
-	sprintf(write_buffer, "server: client %d just arrived\n", clients[client_fd].id);
-	broadcaster(client_fd);
+	sprintf(write_buffer, "server: client %d just arrived\n", client[client_fd].id);
+	locutor(client_fd);
 }
 
 void	handle_disconnect(int client_fd)
 {
-	sprintf(write_buffer, "server: client %d just left\n", clients[client_fd].id);
-	broadcaster(client_fd);
-
+	sprintf(write_buffer, "server: client %d just left\n", client[client_fd].id);
+	locutor(client_fd);
 	FD_CLR(client_fd, &fds);
 	close(client_fd);
-	bzero(clients[client_fd].msg, sizeof(clients[client_fd].msg));
+	bzero(client[client_fd].msg, sizeof(client[client_fd].msg));
 }
 
 void	handle_message(int fd)
@@ -99,16 +98,16 @@ void	handle_message(int fd)
 		return ;
 	}
 	i = 0;
-	j = strlen(clients[fd].msg);
+	j = strlen(client[fd].msg);
 	while (i < bytes)
 	{
-		clients[fd].msg[j] = read_buffer[i];
-		if (clients[fd].msg[j] == '\n')
+		client[fd].msg[j] = read_buffer[i];
+		if (client[fd].msg[j] == '\n')
 		{
-			clients[fd].msg[j] = '\0';
-			sprintf(write_buffer, "client %d: %s\n", clients[fd].id, clients[fd].msg);
-			broadcaster(fd);
-			bzero(clients[fd].msg, sizeof(clients[fd].msg));
+			client[fd].msg[j] = '\0';
+			sprintf(write_buffer, "client %d: %s\n", client[fd].id, client[fd].msg);
+			locutor(fd);
+			bzero(client[fd].msg, sizeof(client[fd].msg));
 			j = -1;
 		}
 		i++;
@@ -125,7 +124,7 @@ int	main(int argc, char* argv[])
 	}
 
 	FD_ZERO(&fds);
-	bzero(clients, sizeof(clients));
+	bzero(client, sizeof(client));
 	int sockfd = init_server(argv[1]);
 	max_fd = sockfd;
 	FD_SET(sockfd, &fds);
