@@ -43,12 +43,12 @@ int	init_server(char* port)
 	int sockfd;
 	struct sockaddr_in addr;
 
-	sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	sockfd = socket(2, SOCK_STREAM, 0);
 	if (sockfd < 0)
 		error();
 
 	bzero(&addr, sizeof(addr));
-	addr.sin_family = AF_INET;
+	addr.sin_family = 2;
 	addr.sin_addr.s_addr = htonl(2130706433);
 	addr.sin_port = htons(atoi(port));
 
@@ -60,7 +60,7 @@ int	init_server(char* port)
 	return sockfd;
 }
 
-void	handle_new_connection(int sockfd)
+void	new_connection(int sockfd)
 {
 	struct sockaddr_in addr;
 	socklen_t len = sizeof(addr);
@@ -77,7 +77,7 @@ void	handle_new_connection(int sockfd)
 	locutor(client_fd);
 }
 
-void	handle_disconnect(int client_fd)
+void	disconnect(int client_fd)
 {
 	sprintf(write_buffer, "server: client %d just left\n", client[client_fd].id);
 	locutor(client_fd);
@@ -86,7 +86,7 @@ void	handle_disconnect(int client_fd)
 	bzero(client[client_fd].msg, sizeof(client[client_fd].msg));
 }
 
-void	handle_message(int fd)
+void	message(int fd)
 {
 	int	i;
 	int	j;
@@ -94,7 +94,7 @@ void	handle_message(int fd)
 
 	if (bytes <= 0)
 	{
-		handle_disconnect(fd);
+		disconnect(fd);
 		return ;
 	}
 	i = 0;
@@ -143,9 +143,9 @@ int	main(int argc, char* argv[])
 				continue;
 			}
 			if (sockfd == fd)
-				handle_new_connection(fd);
+				new_connection(fd);
 			else
-				handle_message(fd);
+				message(fd);
 			fd++;
 		}
 	}
